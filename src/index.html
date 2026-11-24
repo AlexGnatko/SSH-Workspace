@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SSH Workspace</title>
+  <link rel="stylesheet" href="xterm.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <button id="brand-menu-toggle" class="brand-link" type="button" aria-controls="app-menu" aria-expanded="false"><span class="brand-icon" aria-hidden="true">&gt;_</span> SSH Workspace</button>
+      <button id="app-menu-toggle" class="square" type="button" aria-controls="app-menu" aria-expanded="false" aria-label="Меню приложения" data-i18n-aria-label>
+        <canvas id="app-menu-icon" class="app-menu-icon" aria-hidden="true"></canvas>
+      </button>
+      <div id="app-menu" class="app-menu" hidden>
+        <button id="settings" type="button"><span data-i18n>Настройки</span></button>
+        <button id="about" type="button"><span data-i18n>О программе</span></button>
+      </div>
+    </div>
+    <div class="sidebar-heading">
+      <h1><span data-i18n>Подключения</span></h1>
+      <div class="sidebar-tools">
+        <button id="new-group" title="Новая группа профилей" data-i18n-title aria-label="Новая группа профилей" data-i18n-aria-label><span data-i18n>Группа</span></button>
+        <button id="new-profile" class="square" title="Новый профиль" data-i18n-title aria-label="Новый профиль" data-i18n-aria-label>+</button>
+      </div>
+    </div>
+    <nav id="profiles" aria-label="Сохранённые подключения" data-i18n-aria-label></nav>
+  </aside>
+  <main class="workspace">
+    <div id="workspace-panes"></div>
+    <output id="notice" class="notice" role="alert" hidden></output>
+  </main>
+
+  <template id="workspace-pane-template">
+    <section class="workspace-pane" tabindex="-1">
+    <header class="pane-header">
+      <nav id="profile-tabs" class="profile-tabs" aria-label="Открытые профили" data-i18n-aria-label></nav>
+      <button id="pane-layout" class="square pane-layout" type="button"></button>
+    </header>
+    <div id="empty" class="empty">
+      <span class="empty-icon" aria-hidden="true">&gt;_</span>
+      <h2><span data-i18n>Откройте подключение</span></h2>
+      <p id="empty-hint"><span data-i18n>Сохраните адрес сервера и логин в профиле.</span></p>
+      <button id="empty-add" class="primary"><span data-i18n>Создать профиль</span></button>
+    </div>
+    <section id="workspace" class="active-workspace" aria-label="Сеансы" data-i18n-aria-label hidden>
+      <div class="terminal-bar">
+        <nav id="terminal-tabs" class="terminal-tabs" aria-label="Сеансы профиля" data-i18n-aria-label></nav>
+        <button id="new-terminal" class="square" title="Новый терминал" data-i18n-title aria-label="Новый терминал" data-i18n-aria-label>+</button>
+        <button id="new-files" title="Открыть файловый сеанс SFTP" data-i18n-title aria-label="Новый сеанс SFTP" data-i18n-aria-label>⇄ SFTP</button>
+        <div class="actions">
+          <button id="use-password" hidden><span data-i18n>Ввести пароль</span></button>
+          <button id="reconnect" hidden><span data-i18n>Подключить</span></button>
+          <button id="interrupt" title="Прервать команду (Ctrl+C)" data-i18n-title>Ctrl+C</button>
+        </div>
+      </div>
+      <div id="terminal-area" class="terminal-area"></div>
+      <footer class="status-bar">
+        <span id="status" role="status"></span>
+        <span id="destination" class="destination"></span>
+      </footer>
+    </section>
+    </section>
+  </template>
+
+  <dialog id="profile-dialog" aria-labelledby="profile-title">
+    <form id="profile-form">
+      <h2 id="profile-title"><span data-i18n>Новый профиль</span></h2>
+      <label><span data-i18n>Название</span><input id="profile-name" required maxlength="80" autocomplete="off" placeholder="Рабочий сервер" data-i18n-placeholder></label>
+      <label><span data-i18n>Группа</span><select id="profile-group"></select></label>
+      <div class="form-row">
+        <label><span data-i18n>Сервер</span><input id="profile-host" required maxlength="253" autocomplete="off" placeholder="host.example.com"></label>
+        <label><span data-i18n>Порт</span><input id="profile-port" type="number" min="1" max="65535" placeholder="Авто" data-i18n-placeholder></label>
+      </div>
+      <label><span data-i18n>Пользователь</span><input id="profile-user" maxlength="128" autocomplete="off" placeholder="Из настроек OpenSSH" data-i18n-placeholder></label>
+      <label><span data-i18n>Пароль</span><input id="profile-password" type="password" maxlength="4096" autocomplete="new-password" placeholder="Вводить при подключении" data-i18n-placeholder></label>
+      <label id="forget-row" class="checkbox" hidden><input id="forget-password" type="checkbox"><span data-i18n>Удалить сохранённый пароль</span></label>
+      <label class="checkbox"><input id="profile-tmux" type="checkbox"><span data-i18n>Подключаться к общей сессии tmux «work»</span></label>
+      <p id="form-error" class="error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" id="delete-profile" class="danger" hidden><span data-i18n>Удалить</span></button>
+        <button type="button" id="cancel-profile"><span data-i18n>Отмена</span></button>
+        <button type="submit" id="save-profile" class="primary"><span data-i18n>Сохранить</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="group-dialog" aria-labelledby="group-title">
+    <form id="group-form">
+      <h2 id="group-title"><span data-i18n>Новая группа</span></h2>
+      <label><span data-i18n>Название</span><input id="group-name" required maxlength="60" autocomplete="off" placeholder="Например, Рабочие" data-i18n-placeholder></label>
+      <p id="group-error" class="error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" id="delete-group" class="danger" hidden><span data-i18n>Удалить группу</span></button>
+        <button type="button" id="cancel-group"><span data-i18n>Отмена</span></button>
+        <button type="submit" id="save-group" class="primary"><span data-i18n>Сохранить</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <form id="settings-form">
+      <h2 id="settings-title"><span data-i18n>Настройки</span></h2>
+      <label><span data-i18n>Язык интерфейса</span><select id="app-language">
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+      </select></label>
+      <p class="settings-hint"><span data-i18n>Язык изменится при следующем запуске.</span></p>
+      <label class="checkbox"><input id="copy-selection" type="checkbox"><span data-i18n>Копировать при выделении</span></label>
+      <label class="checkbox"><input id="right-click-paste" type="checkbox"><span data-i18n>Вставлять правой кнопкой мыши</span></label>
+      <div class="dialog-actions">
+        <button type="button" id="cancel-settings"><span data-i18n>Отмена</span></button>
+        <button type="submit" class="primary"><span data-i18n>Сохранить</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="about-dialog" aria-labelledby="about-title">
+    <form method="dialog">
+      <h2 id="about-title"><span data-i18n>О программе</span></h2>
+      <p class="about-version"><strong>SSH Workspace</strong> <span id="app-version"></span></p>
+      <p><span data-i18n>Авторы: Alex Gnatko и Codex (OpenAI).</span></p>
+      <p>© 2026 Alex Gnatko</p>
+      <p><span data-i18n>Скачать приложение можно на сайте проекта.</span></p>
+      <a id="project-site" href="https://ssh-workspace.ag38.ru/">ssh-workspace.ag38.ru</a>
+      <p><span data-i18n>Код проекта доступен по лицензии MIT. Для сторонних компонентов действуют их собственные лицензии.</span></p>
+      <button id="show-licenses" type="button"><span data-i18n>Тексты лицензий</span></button>
+      <div class="dialog-actions"><button autofocus><span data-i18n>Закрыть</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="paste-dialog" aria-labelledby="paste-title">
+    <form method="dialog">
+      <h2 id="paste-title"><span data-i18n>Вставить несколько строк?</span></h2>
+      <p><span data-i18n>Текущая программа может выполнить команды сразу при вставке.</span></p>
+      <pre id="paste-preview"></pre>
+      <div class="dialog-actions">
+        <button value="cancel" autofocus><span data-i18n>Отмена</span></button>
+        <button value="paste" class="primary"><span data-i18n>Вставить</span></button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,27 @@
+appId: org.sshworkspace.desktop
+productName: SSH Workspace
+copyright: Copyright © 2026 Alex Gnatko
+artifactName: SSH-Workspace-${version}-${os}-${arch}.${ext}
+directories:
+  output: release/${version}
+electronDist: node_modules/electron/dist
+asar: false
+npmRebuild: false
+files:
+  - dist/**
+  - assets/icon.png
+win:
+  icon: assets/icon.ico
+  signExecutable: false
+msi:
+  oneClick: false
+  perMachine: false
+mac:
+  target: dmg
+  icon: assets/icon-mac.png
+  category: public.app-category.developer-tools
+linux:
+  target: AppImage
+  icon: assets/icon.png
+  category: Development
+  syncDesktopName: true

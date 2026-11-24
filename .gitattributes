@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+# Windows batch scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Image and icon assets
+*.png binary !eol
+*.ico binary !eol
