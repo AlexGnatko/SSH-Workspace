@@ -1,70 +1,70 @@
 # SSH Workspace
 
-Настольный прототип SSH-клиента. Сохраните профиль в левой панели, нажмите на него и откройте дополнительные параллельные терминалы кнопкой «+» рядом с их вкладками.
+SSH Workspace is a desktop SSH and SFTP client. Save a connection profile in the sidebar, select it to connect, and use the **+** button next to its session tabs to open additional terminals.
 
-## Запуск на Windows
+## Run on Windows
 
-Откройте `SSH Workspace.exe` в папке `release/<версия>/win-unpacked` двойным щелчком. Готовая сборка предназначена для Windows x64. В папке уже есть Electron, Chromium, Node.js и код приложения. Для переноса копируйте папку `win-unpacked` целиком. Для терминала и чтения конфигурации SSH нужен системный компонент «Клиент OpenSSH».
+Open `SSH Workspace.exe` in `release/<version>/win-unpacked`. The Windows x64 build includes Electron, Chromium, Node.js, and the application code. Copy the entire `win-unpacked` folder to move the portable build. Install the Windows OpenSSH Client optional feature to use SSH terminals and read OpenSSH configuration.
 
-## Сборка из исходников
+## Build from source
 
-Нужны Node.js 22.12 или новее и системный компонент «Клиент OpenSSH». В Windows CMD или PowerShell проверьте версии командами `node -v` и `ssh -V`.
+You need Node.js 22.12 or later and the system OpenSSH client. Run `node -v` and `ssh -V` to check the installed versions.
 
-```powershell
+```sh
 npm ci
 npm start
 ```
 
-При первом запуске Electron загрузит свой исполняемый файл. На старых версиях Node.js в этот момент возможна ошибка `ERR_REQUIRE_ESM`. После обновления Node.js откройте новый терминал и снова выполните команды установки и запуска.
+Electron downloads its binary on first use. An older version of Node.js may report `ERR_REQUIRE_ESM` during this step. After upgrading Node.js, open a new terminal and run the commands again.
 
-Для запуска Windows-версии выполняйте обе команды из Windows. Если запускаете проект в WSL, используйте отдельную копию проекта, например в `~/SSH-Client`. У Windows и Linux разные нативные зависимости в `node_modules`. Установка из WSL в общей папке заменяет Windows-версии. Чтобы восстановить их, выполните `npm ci` из Windows.
+Run the Windows build commands from Windows. If you run the project in WSL, use a separate checkout such as `~/SSH-Workspace`. Windows and Linux use different native dependencies in `node_modules`. If installing from WSL replaces the Windows dependencies in a shared folder, run `npm ci` from Windows to restore them.
 
-Чтобы пересобрать готовую папку Windows-приложения, выполните `npm run package:win` из Windows. Для отдельной проверки сборки используйте `npm run build`.
+Run `npm run package:win` on Windows to build the portable folder. Run `npm run build` to compile the app without packaging it.
 
-## Дистрибутивы
+## Distribution packages
 
-После `npm ci` соберите пакет на целевой системе и архитектуре. Результат появится в `release/<версия>`.
+After `npm ci`, build on the target operating system and architecture. Packages are written to `release/<version>`.
 
-| Система | Команда | Формат |
+| Platform | Command | Format |
 | --- | --- | --- |
 | Windows x64 | `npm run package:msi` | MSI |
 | Linux x64 | `npm run package:linux` | AppImage |
-| macOS (Apple Silicon и Intel) | `npm run package:mac` | DMG для архитектуры машины сборки |
+| macOS (Apple Silicon and Intel) | `npm run package:mac` | DMG for the build machine's architecture |
 
-Для сборки `node-pty` на Linux нужны Python 3, make и компилятор C++. AppImage нужен исполняемый флаг (`chmod +x файл.AppImage`). В Linux и macOS нужен системный OpenSSH в `PATH`.
+Building `node-pty` on Linux requires Python 3, make, and a C++ compiler. Make the AppImage executable with `chmod +x <file>.AppImage`. The system OpenSSH client must be on `PATH` on Linux and macOS.
 
-После добавления workflow в основную ветку репозитория откройте **Actions → Build desktop packages → Run workflow**. MSI, AppImage и оба DMG появятся в разделе **Artifacts** соответствующего запуска.
+On GitHub, open **Actions → Build desktop packages → Run workflow**. Once the workflow is on the default branch, you can run it to produce the MSI, AppImage, and both DMGs. Download them from **Artifacts** on the run page.
 
-Workflow рассчитан на сборки без сертификата Apple Developer ID и нотариализации. Для запуска скачанного приложения без ручного подтверждения Gatekeeper используют Developer ID и нотариализацию. На Apple Silicon нативный код должен иметь действительную подпись. Для тестовой сборки достаточно ad-hoc подписи. Проверьте подпись и запуск первого DMG на Mac. См. [инструкции Apple](https://support.apple.com/en-us/102445).
+The workflow is configured for builds without an Apple Developer ID certificate or notarization. Developer ID signing and notarization allow downloaded apps to open through Gatekeeper without a manual exception. Native Apple Silicon code requires a valid signature, and an ad hoc signature is sufficient for a test build. Verify the signature and first launch of the downloaded DMG on a Mac. [Apple's guide to opening apps](https://support.apple.com/en-us/102445)
 
-## Интерфейс и лицензия
+## Interface and license
 
-Меню открывается по кнопке ☰ или названию SSH Workspace над списком подключений. В настройках доступны русский, английский, немецкий, французский и испанский языки. Выбранный язык применяется при следующем запуске. Вывод OpenSSH и удалённых программ приходит в исходном виде.
+Open the app menu with the menu button or by clicking the SSH Workspace logo. Settings offers Russian, English, German, French, and Spanish. Language changes apply the next time you open the app. OpenSSH and remote programs display their original output.
 
-Код SSH Workspace распространяется по [лицензии MIT](LICENSE). Тексты лицензий сторонних компонентов входят в сборку и доступны через «О программе».
+The SSH Workspace source code is available under the [MIT license](LICENSE). Bundled third-party license texts are available from **About**.
 
-## Подключения
+## Connections
 
-- В профиле можно указать имя хоста, IP-адрес или алиас из `~/.ssh/config`. Пустые логин и порт берутся из конфигурации OpenSSH. Профили сохраняются в пользовательских данных приложения.
-- Кнопка «Группа» создаёт группу профилей. Назначьте её в настройках подключения. Слева раскрывается одна группа, а сверху открытые профили собраны под названиями своих групп. Сворачивание группы оставляет её сеансы подключёнными.
-- Кнопка в правом верхнем углу разделяет рабочую область на две панели. У каждой свои вкладки профилей и сеансов. Щёлкните по нужной панели, затем выберите профиль в общем списке слева. Крестик панели завершает все её сеансы, а соседняя панель становится полноширинной.
-- Пароль необязателен. Сохранённые пароли шифруются через Electron safeStorage. Кнопка «Ввести пароль» появляется при обычном запросе пароля от OpenSSH. Подтверждение отпечатка, пароль ключа и интерактивные запросы входа можно вводить прямо в терминале.
-- Настройки адреса, логина и порта применяются к новым терминалам. Изменение этих полей сбрасывает прежний пароль профиля, если одновременно не ввести новый.
-- После штатного выхода из удалённой оболочки вкладка закрывается. При сетевой ошибке терминал остаётся открыт и повторяет подключение с паузой от 2 до 30 секунд. Если сервер требует пароль, после переподключения его нужно снова подставить кнопкой или ввести вручную.
-- При закрытии SSH- или SFTP-вкладки клиент завершает соответствующее соединение. Другие вкладки продолжают работать.
-- При смене ключа сервера в сеансе SSH или SFTP клиент покажет старый и новый отпечатки. Сверьте новый отпечаток с панелью хостинга или администратором перед заменой. Автоматическая замена доступна для однозначной записи в пользовательском `known_hosts` и для ключа, сохранённого в профиле SFTP.
-- Опция tmux использует `tmux new -As work`. Если параллельные терминалы открыты с этой опцией для одного сервера и пользователя, они показывают одну общую сессию tmux.
-- Выделение автоматически копируется, правая кнопка вставляет текущий текст из буфера. Обе настройки можно отключить. Работают `Ctrl+Shift+C`, `Ctrl+Shift+V` и `Ctrl+V`. Многострочная вставка требует подтверждения, если приложение в терминале не включило bracketed paste.
+- A profile accepts a hostname, IP address, or alias from `~/.ssh/config`. OpenSSH supplies the username and port when those fields are blank. Profiles are stored in the app's local user data.
+- Use **Group** to create a profile group and assign profiles in their settings. The sidebar shows one expanded group at a time, and the top tab bar shows open profiles under their group names. Collapsing a group leaves its sessions connected.
+- The button at the top right splits the workspace into two panes, each with its own profile and session tabs. Select a pane, then choose a profile from the shared sidebar. Closing a pane ends its sessions and expands the other pane.
+- Passwords are optional. The app encrypts saved passwords using Electron's `safeStorage`. **Enter password** appears when OpenSSH asks for the account password. Respond to host key confirmations, key passphrase requests, and interactive login prompts in the terminal.
+- Host, username, and port changes apply to new terminals. Changing any of those fields clears the saved password unless you enter a replacement.
+- A clean exit from the remote shell closes the tab. After a network failure, the terminal stays open and retries with a delay of 2 to 30 seconds. If the server requires a password, use **Enter password** again or type it manually.
+- Closing an SSH or SFTP tab ends the associated connection. Sessions in other tabs continue running.
+- If the host key changes during SSH or SFTP, the client shows the old and new fingerprints. Verify the new fingerprint with the hosting control panel or server administrator before replacing it. The client can update a matching entry in the user's `known_hosts` when the match is unambiguous. It can also replace the SFTP key saved in the profile.
+- The tmux option runs `tmux new -As work`. Terminals that use this option with the same server and username attach to the same tmux session.
+- The terminal can copy on selection and paste on right-click. Both options are configurable. `Ctrl+Shift+C`, `Ctrl+Shift+V`, and `Ctrl+V` also work. Pasting multiple lines requires confirmation unless the terminal program has enabled bracketed paste.
 
-На проверенной версии Windows 10 системный ConPTY может скрывать от терминала включение bracketed paste. В этом случае клиент запрашивает подтверждение многострочной вставки.
+On the tested version of Windows 10, ConPTY may hide bracketed paste mode from the terminal. The client asks for confirmation before pasting multiple lines in that case.
 
-## Файлы
+## Files
 
-Кнопка «⇄ SFTP» открывает новую файловую вкладку в текущем профиле. Компьютер всегда слева, сервер всегда справа. Можно открыть несколько независимых вкладок. Новая вкладка восстанавливает последние папки профиля.
+Use **⇄ SFTP** to open an independent file tab for the current profile. Local files are on the left and remote files are on the right. You can open multiple file tabs. Each new tab restores the profile's last-used folders.
 
-- `Tab` переключает панели. Стрелки перемещают курсор. `Enter` открывает папку, `Backspace` поднимается на уровень выше, `Insert` отмечает несколько элементов.
-- `F5` открывает диалог копирования в соседнюю панель. В диалоге `Enter` подтверждает копирование, а `Escape` отменяет. `F8` удаляет выделенные элементы после подтверждения, `F7` создаёт папку, `F2` переименовывает элемент. Копирование останавливается при конфликте имён.
-- Во время копирования окно показывает переданный объём, количество файлов и оценку оставшегося времени.
-- Правый щелчок в панели сервера открывает команды «Скопировать путь» и «Права». В диалоге прав можно задать разрешения R/W/X, специальные биты и числовой режим Oct. Для смены владельца или группы введите числовой UID/GID. Рекурсивное применение к папке пропускает символические ссылки. Изменения выполняются с правами текущей учётной записи на сервере.
-- SFTP проверяет отпечаток сервера по `known_hosts` или просит подтвердить его при первом входе. Можно использовать сохранённый или разовый пароль, SSH-агент или незашифрованный ключ. Для зашифрованного ключа используйте агент. В этой версии SFTP подключается напрямую.
+- `Tab` switches panels. Use the arrow keys to move the cursor, `Enter` to open a folder, `Backspace` to go up a level, and `Insert` to mark multiple items.
+- `F5` opens the copy dialog for the opposite panel. Press `Enter` to confirm or `Escape` to cancel. `F8` deletes selected items after confirmation, `F7` creates a folder, and `F2` renames an item. Copying stops on a name conflict.
+- During a copy, the progress panel shows the transferred size, file count, and estimated time remaining.
+- Right-click a remote item to open **Copy path** or **Permissions…**. The permissions dialog supports R/W/X permissions, special bits, and numeric octal mode. Enter a numeric UID or GID to change the owner or group. Recursive updates skip symbolic links and use the current server account's permissions.
+- SFTP verifies the host key against `known_hosts` or asks for approval on first use. Use a saved or one-time password, the SSH agent, or an unencrypted key. Use the agent for encrypted keys. This version connects to SFTP directly.
 

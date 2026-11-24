@@ -1,46 +1,46 @@
-# Кроссплатформенный SSH-клиент
+# Cross-platform SSH client plan
 
-Нужен настольный клиент для повседневной работы примерно с десятью серверами. Сейчас терминалы открываются в PuTTY, файлы копируются через WinSCP. После сетевого обрыва приходится вручную закрывать окна ошибок и заново подключаться к каждому серверу. Начинаем с Windows, интерфейс в перспективе должен работать также на Linux и macOS.
+Build a desktop client for daily work across roughly ten servers. The starting workflow uses PuTTY for terminals and WinSCP for file transfers. After a network outage, each error window has to be closed and each server connection reopened by hand. Start on Windows and extend the interface to Linux and macOS.
 
-## Первый прототип
+## Initial prototype
 
-Проверить связку **Electron + TypeScript + xterm.js + node-pty + OpenSSH** на Windows. xterm.js отображает терминал и обрабатывает ввод. `node-pty` запускает системный `ssh` в псевдотерминале и передаёт ему ввод и размеры окна. SSH-транспорт, аутентификация и проверка ключей серверов остаются в OpenSSH.
+Validate **Electron + TypeScript + xterm.js + node-pty + OpenSSH** on Windows. xterm.js displays the terminal and handles input. `node-pty` runs the system `ssh` client in a pseudoterminal and forwards input and window dimensions. OpenSSH handles SSH transport, authentication, and server host key verification.
 
-Первый прототип включает локальные профили подключений по образцу WinSCP. В профиле хранятся название, сервер или алиас OpenSSH, порт, логин и необязательный пароль. Для пароля используется системное шифрование. Сохранённый пароль можно подставить кнопкой при запросе OpenSSH, также доступен ручной ввод. Профили с ключами продолжают работать через OpenSSH и SSH-агент.
+Save connection profiles locally, following the WinSCP model. Each profile stores a name, a hostname or OpenSSH alias, a port, a username, and an optional password. Use system encryption for stored passwords. When OpenSSH prompts for a password, make it possible to enter the saved password with a button or type it manually. Key-based profiles continue to use OpenSSH and the SSH agent.
 
-Открытый профиль занимает верхнюю вкладку. Внутри него можно открыть несколько вкладок с независимыми терминалами. Каждая показывает состояние своего соединения и позволяет прервать команду или закрыть сеанс. Файловую панель можно добавить после проверки поведения терминала.
+Give each open profile a tab in the top bar. A profile can contain several independent terminal tabs. Each tab shows its connection state and lets the user interrupt commands or close the session. Add file panels after validating terminal behavior.
 
-### Копирование и вставка
+### Copy and paste
 
-- Поведение как в PuTTY. Выделил текст мышью — он сразу в системном буфере обмена. Правая кнопка вставляет текущее содержимое буфера. Эти действия можно сделать настраиваемыми.
-- Брать выделение через `getSelection()`, вставлять через `paste()`. Сохранять обратные слэши, кавычки, пробелы и кириллицу. Интерпретацией введённой команды занимается удалённая оболочка.
-- При копировании длинной команды визуальные переносы по ширине окна не должны добавлять переводы строк. При вставке многострочного текста сохранять `bracketed paste`, когда программа его включила. В остальных случаях запрашивать подтверждение перед отправкой текста с переводами строк.
-- Проверить копирование в Блокнот, вставку из Блокнота и вставку правой кнопкой, пока в терминале ещё выделен старый текст. Пример строки для проверки: `C:\Temp\папка с пробелом\file.txt "тест"`.
+- Support PuTTY-style copy on mouse selection and paste on right-click. Make both behaviors configurable.
+- Use `getSelection()` and `paste()`. Preserve backslashes, quotation marks, spaces, and Cyrillic characters. The remote shell interprets the entered command.
+- Copy a long command without inserting line breaks at visual wraps. Honor bracketed paste when the terminal program enables it. Otherwise, ask for confirmation before sending multiline text.
+- Test copying to Notepad, pasting from Notepad, and pasting with the right mouse button while an earlier selection remains active. Use a Windows path with spaces and non-ASCII characters, such as `C:\Temp\café notes\file.txt "test"`.
 
-### Обрыв связи
+### Connection loss
 
-- Вкладка остаётся открытой. При сетевом обрыве показывать статус и повторять подключение с паузой между попытками. Закрытие вкладки и штатный выход из оболочки должны отменять переподключение.
-- При необходимости показать запрос пароля или подтверждения входа внутри вкладки. Уже введённые команды при переподключении повторно не отправлять.
-- Проверить две вкладки при отключении и восстановлении сети или VPN. Обе должны восстановить соединение в своих вкладках, если аутентификация позволяет войти без участия пользователя.
-- Для возврата к прежней оболочке и её программам предусмотреть опциональный запуск `tmux new -As work` на Linux-сервере. Когда сервер продолжал работать, новый SSH-сеанс сможет подключиться к той же сессии `tmux`.
+- Keep the tab open after a network interruption. Show its status and retry with a delay between attempts. Closing the tab or exiting the remote shell cleanly must cancel reconnect attempts.
+- Show password or authentication prompts in the tab when needed. Reconnecting must never replay earlier commands.
+- Test two open tabs while disconnecting and restoring the network or VPN. Both should reconnect in place when authentication can complete without user input.
+- Offer an option to run `tmux new -As work` on a Linux server. When the server stayed up, a new SSH connection can reattach to the same tmux session and recover the previous shell and programs.
 
-### Большой объём вывода
+### High-volume output
 
-- `cat huge.log` отправляет вывод по SSH до конца файла или до прерывания. Ограничение истории прокрутки само по себе не ограничивает трафик или очередь данных до отрисовки.
-- Ограничить историю и объём необработанного вывода. При заполнении очереди приостанавливать чтение из PTY, а после обработки накопленного вывода возобновлять. Ввод, включая `Ctrl+C`, должен оставаться доступным во время потока.
-- Проверить `yes` на тестовом сервере или вывод большого тестового файла. Измерить расход памяти, проверить ввод в соседней вкладке и задержку реакции на `Ctrl+C`.
+- `cat huge.log` sends output over SSH until it reaches the end of the file or the user interrupts it. Limiting scrollback alone leaves both network traffic and the rendering queue unaffected.
+- Limit scrollback and pending output. Pause PTY reads when the queue fills up and resume after the queue drains. Keep input responsive during heavy output, including `Ctrl+C`.
+- Run `yes` or print a large test file on a test server. Measure memory usage and check input in an adjacent tab and the response time to `Ctrl+C`.
 
-## После прототипа
+## After the prototype
 
-- Слева — серверы, группы и «Открыть все». В центре — терминальные вкладки и разделение окна. Рядом с активным терминалом — файловые панели «Компьютер» и «Сервер» с загрузкой, скачиванием и перетаскиванием по SFTP. Нужен ли отдельный режим SCP, зависит от серверов.
-- Хранить профили локально и использовать SSH-агент для ключей и `known_hosts` для проверки серверов. Открытый исходный код и возможность самостоятельной сборки. Без телеметрии и облачной синхронизации. Операции с процессами и файлами выполнять в основном процессе Electron, а интерфейсу дать узкий API.
-- На ранней сборке для Linux и macOS проверить ввод, буфер обмена, изменение размеров терминала и переподключение. Electron даёт один движок интерфейса на трёх ОС. Tauri с системными WebView можно рассмотреть, если размер дистрибутива станет важнее.
-- На сайте ssh-workspace.ag38.ru сделать общедоступные страницы на русском и английском с описанием локального хранения, терминалов и SFTP. Добавить ссылки на выпуски, исходный код и лицензию. Указывать проверенные версии ОС и архитектуры рядом с файлами. Добавить карту сайта и проверить индексацию после запуска.
-- Если измерения покажут, что xterm.js ограничивает производительность, сравнить его с `libghostty-vt`. Это кроссплатформенное ядро эмуляции терминала. Для него понадобится интеграция отрисовки, выделения и буфера обмена.
+- Put servers, groups, and an **Open all** action in the sidebar. Use the center for terminal tabs and split panes. Provide **Computer** and **Server** file panels with SFTP uploads, downloads, and drag-and-drop. Server requirements will determine whether a separate SCP mode is useful.
+- Store profiles locally. Use the SSH agent for keys and `known_hosts` for host key verification. Publish the source and support local builds. Keep telemetry and cloud sync out of the app. Handle process and file operations in the Electron main process and expose a narrow API to the renderer.
+- Test input, clipboard operations, terminal resizing, and reconnection on early Linux and macOS builds. Electron provides the same interface engine across all three operating systems. Consider Tauri and system WebViews if download size becomes a higher priority.
+- Publish public English and Russian pages at `ssh-workspace.ag38.ru` that describe local storage, terminals, and SFTP. Link to releases, source code, and the license. List tested operating system versions and architectures next to the downloads. Add a sitemap and check indexing after launch.
+- If measurements show that xterm.js limits performance, compare it with `libghostty-vt`. It is a cross-platform terminal emulation core that would require integration for rendering, selection, and clipboard operations.
 
-## Примеры и документация
+## References
 
-- [VS Code](https://code.visualstudio.com/docs/terminal/basics#_copy-paste) — пример терминала на xterm.js. Для проверки поведения PuTTY включить `terminal.integrated.copyOnSelection` и задать `terminal.integrated.rightClickBehavior` значение `paste`. [Tabby](https://github.com/Eugeny/tabby) — пример отдельного SSH-клиента на xterm.js.
-- [xterm.js API](https://xtermjs.org/docs/api/terminal/classes/terminal/) · [Управление потоком](https://xtermjs.org/docs/guides/flowcontrol/) · [node-pty](https://github.com/microsoft/node-pty) · [Изоляция в Electron](https://www.electronjs.org/docs/latest/tutorial/security)
-- [Терминал PhpStorm](https://www.jetbrains.com/help/phpstorm/terminal-emulator.html) · [libghostty-vt](https://lib.ghostty.org/vt/index.html) · [tmux](https://github.com/tmux/tmux/wiki/Getting-Started)
+- [VS Code terminal copy and paste](https://code.visualstudio.com/docs/terminal/basics#_copy-paste) shows an xterm.js terminal. To try PuTTY-style behavior, enable `terminal.integrated.copyOnSelection` and set `terminal.integrated.rightClickBehavior` to `paste`. [Tabby](https://github.com/Eugeny/tabby) is an example of a dedicated xterm.js SSH client.
+- [xterm.js API](https://xtermjs.org/docs/api/terminal/classes/terminal/) · [Flow control](https://xtermjs.org/docs/guides/flowcontrol/) · [node-pty](https://github.com/microsoft/node-pty) · [Electron security](https://www.electronjs.org/docs/latest/tutorial/security)
+- [PhpStorm terminal](https://www.jetbrains.com/help/phpstorm/terminal-emulator.html) · [libghostty-vt](https://libghostty.org/vt/index.html) · [tmux](https://github.com/tmux/tmux/wiki/Getting-Started)
 
