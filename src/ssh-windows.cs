@@ -24,7 +24,7 @@ internal static class SshWindows
         }
         catch (Exception error)
         {
-            string message = "Не удалось запустить системный OpenSSH. " + error.Message;
+            string message = "Could not start the system OpenSSH client. " + error.Message;
             try { File.AppendAllText(args[1], message + Environment.NewLine); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }

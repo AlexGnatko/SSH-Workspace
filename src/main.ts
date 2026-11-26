@@ -30,7 +30,7 @@ function ownsFrame(event: IpcMainEvent | IpcMainInvokeEvent) {
 
 function handle<Args extends unknown[], Result>(channel: string, action: (...args: Args) => Result) {
   ipcMain.handle(channel, (event, ...args: Args) => {
-    if (!ownsFrame(event)) throw new Error(t('Недоступно.'));
+    if (!ownsFrame(event)) throw new Error(t('Unavailable.'));
     return action(...args);
   });
 }
@@ -61,7 +61,7 @@ function closeSession(id: string) {
 
 function fileSession(id: string) {
   const session = files.get(id);
-  if (!session) throw new Error(t('Вкладка SFTP закрыта.'));
+  if (!session) throw new Error(t('The SFTP tab is closed.'));
   return session;
 }
 
@@ -75,7 +75,7 @@ function trackClose(close: Promise<void>) {
   pendingClosures.add(close);
   void close.then(() => pendingClosures.delete(close), (error: unknown) => {
     pendingClosures.delete(close);
-    console.warn(t('Не удалось закрыть соединение.'), error);
+    console.warn(t('Could not close the connection.'), error);
   });
 }
 
@@ -88,10 +88,10 @@ const confirmKeyChange: ConfirmKeyChange = async ({ endpoint, previous, next }, 
   const owner = window;
   if (!owner || signal.aborted) return false;
   const result = await dialog.showMessageBox(owner, {
-    type: 'warning', title: t('Ключ SSH-сервера изменился'),
-    message: t('Заменить сохранённый ключ для {endpoint}?', { endpoint }),
-    detail: t('Старый отпечаток\n{previous}\n\nНовый отпечаток\n{next}\n\nСверьте новый отпечаток через панель хостинга или с администратором сервера.', { previous, next }),
-    buttons: [t('Отмена'), t('Заменить и подключиться')], defaultId: 0, cancelId: 0, noLink: true, signal,
+    type: 'warning', title: t('SSH host key changed'),
+    message: t('Replace the saved key for {endpoint}?', { endpoint }),
+    detail: t('Old fingerprint\n{previous}\n\nNew fingerprint\n{next}\n\nVerify the new fingerprint in your hosting control panel or with the server administrator.', { previous, next }),
+    buttons: [t('Cancel'), t('Replace and connect')], defaultId: 0, cancelId: 0, noLink: true, signal,
   });
   return result.response === 1 && !signal.aborted;
 };
@@ -114,7 +114,7 @@ function registerIpc() {
   handle('settings:save', (settings: Settings) => profiles.settings(settings));
   handle('session:start', (id: string, profileId: string, initialSize: Size) => {
     if (typeof id !== 'string' || !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/.test(id) || sessions.has(id)) {
-      throw new Error(t('Неверный идентификатор терминала.'));
+      throw new Error(t('Invalid terminal ID.'));
     }
     const session = new SshSession(id, profiles.get(profileId), size(initialSize), logs, (event) => {
       if (!window?.webContents.isDestroyed()) window?.webContents.send('session:event', event);
@@ -137,7 +137,7 @@ function registerIpc() {
   handle('files:open', (id: string, profileId: string, password?: string) => {
     if (typeof id !== 'string' || !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/.test(id) ||
         (password !== undefined && (typeof password !== 'string' || password.length > 4096))) {
-      throw new Error(t('Неверные параметры SFTP.'));
+      throw new Error(t('Invalid SFTP parameters.'));
     }
     const profile = profiles.get(profileId);
     const previous = files.get(id)?.locations(profile);
@@ -148,10 +148,10 @@ function registerIpc() {
       const owner = window;
       if (!owner || signal.aborted) return false;
       const result = await dialog.showMessageBox(owner, {
-        type: 'question', title: t('Ключ сервера SFTP'),
-        message: t('Доверять ключу сервера {endpoint}?', { endpoint }),
-        detail: t('Сверьте отпечаток с администратором сервера.\n{fingerprint}', { fingerprint }),
-        buttons: [t('Отмена'), t('Доверять')], defaultId: 0, cancelId: 0, noLink: true, signal,
+        type: 'question', title: t('SFTP host key'),
+        message: t('Trust the host key for {endpoint}?', { endpoint }),
+        detail: t('Verify the fingerprint with the server administrator.\n{fingerprint}', { fingerprint }),
+        buttons: [t('Cancel'), t('Trust')], defaultId: 0, cancelId: 0, noLink: true, signal,
       });
       return result.response === 1;
     }, confirmKeyChange, password);
@@ -167,7 +167,7 @@ function registerIpc() {
     const current = window;
     if (!current) return null;
     const session = fileSession(id);
-    const result = await dialog.showOpenDialog(current, { title: t('Папка на компьютере'), properties: ['openDirectory'] });
+    const result = await dialog.showOpenDialog(current, { title: t('Local folder'), properties: ['openDirectory'] });
     return result.filePaths[0] ? session.list('local', result.filePaths[0]) : null;
   });
 }
@@ -239,7 +239,7 @@ if (!app.requestSingleInstanceLock()) {
     try {
       if (logs) rmSync(logs, { force: true, recursive: true, maxRetries: 3 });
     } catch (error) {
-      console.warn(t('Не удалось удалить временные журналы OpenSSH.'), error);
+      console.warn(t('Could not remove temporary OpenSSH logs.'), error);
     }
   });
 }

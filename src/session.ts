@@ -111,7 +111,7 @@ export class SshSession {
         this.flush(run);
       });
     } catch (error) {
-      this.setStatus('failed', t('Не удалось запустить системный OpenSSH. {detail}', { detail: String(error) }));
+      this.setStatus('failed', t('Could not start the system OpenSSH client. {detail}', { detail: String(error) }));
     }
   }
 
@@ -260,7 +260,7 @@ export class SshSession {
     }
     if (run.queued + data.length > queueLimit) {
       void this.close();
-      this.setStatus('failed', t('Поток вывода превысил лимит очереди терминала.'));
+      this.setStatus('failed', t('Output exceeded the terminal queue limit.'));
       return;
     }
     if (run.inFlight === null) run.pty.pause();
@@ -318,24 +318,24 @@ export class SshSession {
       const timer = setTimeout(() => void this.retryConnection(timer), delay);
       this.retry = timer;
       const diagnostic = /could not resolve hostname|temporary failure in name resolution/i.test(networkDetail)
-        ? t('Не удалось разрешить имя сервера. {detail}', { detail: networkDetail }) : networkDetail;
+        ? t('Could not resolve the hostname. {detail}', { detail: networkDetail }) : networkDetail;
       this.setStatus('waiting', diagnostic, Date.now() + delay);
       return;
     }
-    this.setStatus(unexpected ? 'failed' : 'ended', unexpected && detail ? detail : t('Код выхода {code}', { code: remoteStatus ?? run.exitCode ?? '—' }));
+    this.setStatus(unexpected ? 'failed' : 'ended', unexpected && detail ? detail : t('Exit code {code}', { code: remoteStatus ?? run.exitCode ?? '—' }));
   }
 
   private async handleKeyChange(log: string, ipv4: boolean, confirm: ConfirmKeyChange) {
     const rotation = new AbortController();
     this.rotation = rotation;
-    this.setStatus('connecting', t('Сверка сменившегося ключа сервера…'));
+    this.setStatus('connecting', t('Checking the changed host key…'));
     let retry = false;
     try {
       retry = await replaceTerminalHostKey(this.profile, log, confirm, rotation.signal);
-      if (!retry && !rotation.signal.aborted) this.setStatus('failed', t('Новый ключ сервера не подтверждён.'));
+      if (!retry && !rotation.signal.aborted) this.setStatus('failed', t('The new host key was not confirmed.'));
     } catch (error) {
       if (!rotation.signal.aborted) {
-        this.setStatus('failed', t('Ключ сервера изменился. {detail}', { detail: error instanceof Error ? error.message : String(error) }));
+        this.setStatus('failed', t('The host key changed. {detail}', { detail: error instanceof Error ? error.message : String(error) }));
       }
     } finally {
       this.rotation = undefined;

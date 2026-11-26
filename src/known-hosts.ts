@@ -72,7 +72,7 @@ export async function readKnownHosts(host: string, files: string[], signal: Abor
       signal.throwIfAborted();
       const failure = error as { code?: number | string; stderr?: string };
       if (failure.code !== 'ENOENT' && (failure.code !== 1 || failure.stderr?.trim())) {
-        throw new Error(t('Не удалось прочитать known_hosts.'), { cause: error });
+        throw new Error(t('Could not read known_hosts.'), { cause: error });
       }
     }
   }
@@ -94,7 +94,7 @@ export function planKnownReplacement(record: RecordEntry, lookup: string, newKey
   if (record.marker || !stats.isFile() || !/^[a-zA-Z0-9._@%:\[\]-]+$/.test(lookup) ||
       (!hashed && (index < 0 || entries.some((host) => /[!*?]/.test(host)))) ||
       !/^(?:ssh-(?:ed25519|rsa)|ecdsa-sha2-nistp(?:256|384|521))$/.test(type)) {
-    throw new Error(t('Эту запись known_hosts нельзя безопасно заменить из клиента.'));
+    throw new Error(t('This known_hosts entry cannot be safely replaced by the client.'));
   }
   const original = readFileSync(file);
   // Latin-1 preserves untouched bytes, including non-ASCII comments.
@@ -102,7 +102,7 @@ export function planKnownReplacement(record: RecordEntry, lookup: string, newKey
   const position = (record.line - 1) * 2;
   const parts = /^(\s*)(\S+)(\s+\S+\s+\S+)(.*)$/.exec(lines[position] ?? '');
   if (!parts || parts[2] !== record.hosts || parts[3].trim().split(/\s+/).join(' ') !== record.type + ' ' + record.key) {
-    throw new Error(t('known_hosts изменился. Подключитесь снова, чтобы обновить отпечатки.'));
+    throw new Error(t('known_hosts changed. Connect again to refresh the fingerprints.'));
   }
   const separator = lines[position + 1] || (lines.includes('\r\n') ? '\r\n' : '\n');
   const replacement = parts[1] + (hashed ? record.hosts : entries[index]) + ' ' + type + ' ' + newKey.toString('base64') + parts[4];
@@ -110,11 +110,11 @@ export function planKnownReplacement(record: RecordEntry, lookup: string, newKey
   lines[position] = otherHosts.length
     ? parts[1] + otherHosts.join(',') + parts[3] + parts[4] + separator + replacement : replacement;
   return () => {
-    if (!readFileSync(file).equals(original)) throw new Error(t('known_hosts изменился. Подключитесь снова, чтобы обновить отпечатки.'));
+    if (!readFileSync(file).equals(original)) throw new Error(t('known_hosts changed. Connect again to refresh the fingerprints.'));
     const temp = join(dirname(file), '.ssh-workspace-' + randomUUID());
     try {
       writeFileSync(temp, Buffer.from(lines.join(''), 'latin1'), { flag: 'wx', mode: stats.mode & 0o777 });
-      if (!readFileSync(file).equals(original)) throw new Error(t('known_hosts изменился. Подключитесь снова, чтобы обновить отпечатки.'));
+      if (!readFileSync(file).equals(original)) throw new Error(t('known_hosts changed. Connect again to refresh the fingerprints.'));
       renameSync(temp, file);
     } finally {
       rmSync(temp, { force: true });

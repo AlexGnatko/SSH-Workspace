@@ -101,11 +101,11 @@ let activePane: WorkspacePane;
 let paneCount = 0;
 
 const statusText = {
-  connecting: 'Подключение…',
-  connected: 'Подключено',
-  waiting: 'Связь потеряна',
-  ended: 'Сеанс завершён',
-  failed: 'Ошибка подключения',
+  connecting: 'Connecting…',
+  connected: 'Connected',
+  waiting: 'Connection lost',
+  ended: 'Session ended',
+  failed: 'Connection failed',
 } as const satisfies Record<SessionStatus, string>;
 
 function terminalNotice(message: string) {
@@ -261,7 +261,7 @@ function navigationTab(label: string, active: boolean, select: () => void, close
   }
   main.append(text);
   const dismiss = button('×', close, 'tab-close');
-  dismiss.title = t('Закрыть «{name}»', { name: label });
+  dismiss.title = t('Close “{name}”', { name: label });
   dismiss.setAttribute('aria-label', dismiss.title);
   tab.append(main, dismiss);
   return tab;
@@ -280,7 +280,7 @@ function profileRow(profile: Profile) {
   item.append(title, description);
   item.title = profile.name + ' · ' + address(profile);
   const edit = button('⋯', () => editProfile(profile), 'profile-edit');
-  edit.title = t('Изменить «{name}»', { name: profile.name });
+  edit.title = t('Edit “{name}”', { name: profile.name });
   edit.setAttribute('aria-label', edit.title);
   row.append(item, edit);
   return row;
@@ -288,7 +288,7 @@ function profileRow(profile: Profile) {
 
 function sidebarSection(group: ProfileGroup | null, members: Profile[]) {
   const id = group?.id ?? null;
-  const name = group?.name ?? t('Без группы');
+  const name = group?.name ?? t('Ungrouped');
   const container = document.createElement('section');
   container.className = 'sidebar-group';
   const header = document.createElement('div');
@@ -305,7 +305,7 @@ function sidebarSection(group: ProfileGroup | null, members: Profile[]) {
   header.append(toggle);
   if (group) {
     const edit = button('⋯', () => editGroup(group), 'profile-edit');
-    edit.title = t('Изменить группу «{name}»', { name });
+    edit.title = t('Edit group “{name}”', { name });
     edit.setAttribute('aria-label', edit.title);
     header.append(edit);
   }
@@ -316,7 +316,7 @@ function sidebarSection(group: ProfileGroup | null, members: Profile[]) {
     items.append(...members.map(profileRow));
     if (!members.length) {
       const empty = document.createElement('p');
-      empty.textContent = t('Нет подключений');
+      empty.textContent = t('No connections');
       items.append(empty);
     }
     container.append(items);
@@ -338,14 +338,14 @@ function renderSidebar() {
 function renderProfileTabs(pane: WorkspacePane) {
   const { profileTabs, openProfiles, activeProfile, collapsedGroups } = pane;
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
-  const buildTab = (id: string) => navigationTab(profilesById.get(id)?.name ?? t('Профиль'),
+  const buildTab = (id: string) => navigationTab(profilesById.get(id)?.name ?? t('Profile'),
     activeProfile === id, () => activateProfile(pane, id), () => closeProfile(pane, id));
   const openedIds = [...openProfiles.keys()];
   if (!groups.length) {
     profileTabs.replaceChildren(...openedIds.map(buildTab));
     return;
   }
-  const visible = [...groups, { id: null, name: t('Без группы') }].flatMap((group) => {
+  const visible = [...groups, { id: null, name: t('Ungrouped') }].flatMap((group) => {
     const ids = openedIds.filter((id) => (profilesById.get(id)?.groupId ?? null) === group.id);
     if (!ids.length) return [];
     const container = document.createElement('div');
@@ -382,7 +382,7 @@ function renderPaneNavigation(pane: WorkspacePane) {
   }
   const canMove = [...tabs.values()].filter((tab) => tab.kind === 'terminal').length > 1;
   pane.terminalTabs.replaceChildren(...group.tabs.map((tab) => {
-    const item = navigationTab(tab.kind === 'terminal' ? t('Терминал {number}', { number: tab.number }) : 'SFTP ' + tab.number, group.active === tab.id, () => {
+    const item = navigationTab(tab.kind === 'terminal' ? t('Terminal {number}', { number: tab.number }) : 'SFTP ' + tab.number, group.active === tab.id, () => {
       activatePane(pane);
       group.active = tab.id;
       showWorkspace();
@@ -470,8 +470,8 @@ function updateStatus(pane: WorkspacePane) {
   if (!tab) return;
   const { statusLabel, destinationLabel, usePassword, reconnect, interrupt } = pane;
   const terminal = tab.kind === 'terminal' ? tab : undefined;
-  const status = terminal?.passwordReady ? t('OpenSSH запрашивает пароль') : t(statusText[tab.status]);
-  const retry = terminal?.retryAt ? ' · ' + t('Повтор через {seconds} с', {
+  const status = terminal?.passwordReady ? t('OpenSSH is asking for a password') : t(statusText[tab.status]);
+  const retry = terminal?.retryAt ? ' · ' + t('Retry in {seconds} s', {
     seconds: Math.max(0, Math.ceil((terminal.retryAt - Date.now()) / 1000)),
   }) : '';
   const message = status + retry + (tab.detail ? ' · ' + tab.detail : '');
@@ -481,7 +481,7 @@ function updateStatus(pane: WorkspacePane) {
   destinationLabel.title = tab.destination;
   usePassword.hidden = !terminal?.passwordReady;
   reconnect.hidden = !terminal || (tab.status !== 'ended' && tab.status !== 'failed' && tab.status !== 'waiting');
-  reconnect.textContent = tab.status === 'waiting' ? t('Повторить сейчас') : t('Подключить');
+  reconnect.textContent = tab.status === 'waiting' ? t('Retry now') : t('Connect');
   interrupt.disabled = tab.status !== 'connected' && tab.status !== 'connecting';
   interrupt.hidden = !terminal;
 }
@@ -498,16 +498,16 @@ function showWorkspace(focus = true) {
         if (tab.kind === 'files' && tab.pane.hidden) tab.files.dismissContext(false);
       }
     }
-    pane.root.setAttribute('aria-label', split ? (index === 0 ? t('Левая панель') : t('Правая панель')) : t('Рабочая панель'));
+    pane.root.setAttribute('aria-label', split ? (index === 0 ? t('Left pane') : t('Right pane')) : t('Workspace pane'));
     pane.layout.textContent = split ? '×' : '◫';
-    pane.layout.title = split ? (index === 0 ? t('Закрыть левую панель') : t('Закрыть правую панель')) : t('Разделить на две панели');
+    pane.layout.title = split ? (index === 0 ? t('Close left pane') : t('Close right pane')) : t('Split into two panes');
     pane.layout.setAttribute('aria-label', pane.layout.title);
     pane.workspace.hidden = !selected;
     pane.empty.hidden = Boolean(selected);
     pane.emptyAdd.hidden = profiles.length !== 0;
     pane.emptyHint.textContent = profiles.length
-      ? split ? t('Выберите профиль слева. Активная панель выделена.') : t('Выберите сохранённый профиль слева.')
-      : t('Сохраните адрес сервера и логин в профиле.');
+      ? split ? t('Choose a profile on the left. The active pane is highlighted.') : t('Choose a saved profile on the left.')
+      : t('Save the server address and username in a profile.');
     updateStatus(pane);
   }
   renderNavigation();
@@ -683,7 +683,7 @@ async function paste(tab: TerminalTab, supplied?: string) {
   const data = supplied ?? await api.readClipboard();
   const isCurrent = () => selectedTab() === tab && tab.attempt === attempt && canInput(tab);
   if (!data || !isCurrent() || pasteDialog.open) return;
-  if (data.length > 1024 * 1024) throw new Error(t('Размер вставки превышает 1 МБ текста.'));
+  if (data.length > 1024 * 1024) throw new Error(t('The text to paste exceeds 1 MB.'));
   if (/[\r\n]/.test(data) && !tab.terminal.modes.bracketedPasteMode) {
     element('paste-preview').textContent = data.slice(0, 1000) + (data.length > 1000 ? '…' : '');
     pasteDialog.returnValue = 'cancel';
@@ -751,7 +751,7 @@ function handleSessionEvent(event: SessionEvent) {
   }
   if (tab.attempt > 0 && event.attempt > tab.attempt) {
     tab.terminal.reset();
-    if (tab.detail) tab.terminal.writeln(terminalNotice(t('Предыдущая попытка: {detail}', { detail: tab.detail })));
+    if (tab.detail) tab.terminal.writeln(terminalNotice(t('Previous attempt: {detail}', { detail: tab.detail })));
   }
   tab.attempt = event.attempt;
   tab.status = event.status;
@@ -783,15 +783,15 @@ let editing: Profile | undefined;
 function editProfile(profile?: Profile) {
   editing = profile;
   profileForm.reset();
-  element('profile-title').textContent = profile ? t('Настройки профиля') : t('Новый профиль');
+  element('profile-title').textContent = profile ? t('Profile settings') : t('New profile');
   profileName.value = profile?.name ?? '';
-  const ungrouped = new Option(t('Без группы'), '');
+  const ungrouped = new Option(t('Ungrouped'), '');
   profileGroup.replaceChildren(ungrouped, ...groups.map((group) => new Option(group.name, group.id)));
   profileGroup.value = (profile ? profile.groupId : sidebarGroup) ?? '';
   profileHost.value = profile?.host ?? '';
   profilePort.value = profile?.port == null ? '' : String(profile.port);
   profileUser.value = profile?.username ?? '';
-  profilePassword.placeholder = profile?.hasPassword ? t('Пароль сохранён') : t('Вводить при подключении');
+  profilePassword.placeholder = profile?.hasPassword ? t('Password saved') : t('Ask when connecting');
   profileTmux.checked = profile?.tmux ?? false;
   element('forget-row').hidden = !profile?.hasPassword;
   deleteProfile.hidden = !profile;
@@ -842,7 +842,7 @@ let editingGroup: ProfileGroup | undefined;
 
 function editGroup(group?: ProfileGroup) {
   editingGroup = group;
-  element('group-title').textContent = group ? t('Настройки группы') : t('Новая группа');
+  element('group-title').textContent = group ? t('Group settings') : t('New group');
   groupName.value = group?.name ?? '';
   groupError.hidden = true;
   deleteGroup.hidden = !group;
@@ -879,7 +879,7 @@ element('group-form').addEventListener('submit', async (event) => {
 });
 deleteGroup.addEventListener('click', async () => {
   const group = editingGroup;
-  if (!group || saveGroup.disabled || !window.confirm(t('Удалить группу «{name}»? Её профили перейдут в «Без группы».', { name: group.name }))) return;
+  if (!group || saveGroup.disabled || !window.confirm(t('Delete group “{name}”? Its profiles will move to “Ungrouped”.', { name: group.name }))) return;
   saveGroup.disabled = true;
   try {
     await api.deleteGroup(group.id);
@@ -906,7 +906,7 @@ forgetPassword.addEventListener('change', () => { if (forgetPassword.checked) pr
 element('cancel-profile').addEventListener('click', () => { if (!saveProfile.disabled) profileDialog.close(); });
 deleteProfile.addEventListener('click', async () => {
   const profile = editing;
-  if (!profile || saveProfile.disabled || !window.confirm(t('Удалить профиль «{name}» и закрыть его сеансы в обеих панелях?', { name: profile.name }))) return;
+  if (!profile || saveProfile.disabled || !window.confirm(t('Delete profile “{name}” and close its sessions in both panes?', { name: profile.name }))) return;
   try {
     await api.deleteProfile(profile.id);
     profiles = profiles.filter((item) => item.id !== profile.id);

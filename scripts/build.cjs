@@ -51,7 +51,7 @@ async function bundle() {
     const result = spawnSync(compiler, [
       '/nologo', '/optimize+', '/codepage:65001', '/utf8output', '/target:exe', '/out:' + target, source,
     ], { stdio: 'inherit' });
-    if (result.error || result.status !== 0) throw result.error ?? new Error('Не удалось собрать Windows-обёртку OpenSSH.');
+    if (result.error || result.status !== 0) throw result.error ?? new Error('Could not build the Windows OpenSSH wrapper.');
   }
   await Promise.all([
     build({

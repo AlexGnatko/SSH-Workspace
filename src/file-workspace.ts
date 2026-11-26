@@ -43,9 +43,9 @@ class Panel {
 
   constructor(readonly side: FileSide, workspace: FileWorkspace) {
     const local = side === 'local';
-    const heading = make('h2', local ? t('Компьютер') : t('Сервер'));
+    const heading = make('h2', local ? t('Computer') : t('Server'));
     const controls = make('div', undefined, 'file-path');
-    this.path.setAttribute('aria-label', local ? t('Папка на компьютере') : t('Папка на сервере'));
+    this.path.setAttribute('aria-label', local ? t('Local folder') : t('Remote folder'));
     this.path.spellcheck = false;
     this.path.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
@@ -54,9 +54,9 @@ class Panel {
       }
     });
     controls.append(this.path, action('↑', () => workspace.up(this)));
-    if (local) controls.append(action(t('Обзор…'), () => void workspace.chooseLocal()));
+    if (local) controls.append(action(t('Browse…'), () => void workspace.chooseLocal()));
     const columns = make('div', undefined, 'file-columns');
-    columns.append(make('span', t('Имя')), make('span', t('Размер')), make('span', t('Изменён')));
+    columns.append(make('span', t('Name')), make('span', t('Size')), make('span', t('Modified')));
     this.list.tabIndex = 0;
     this.list.setAttribute('aria-label', heading.textContent);
     this.list.setAttribute('role', 'listbox');
@@ -77,14 +77,14 @@ class Panel {
     const available = new Set(listing.entries.map((item) => item.name));
     for (const name of this.selection) if (!available.has(name)) this.selection.delete(name);
     this.cursor = Math.max(0, this.rows.findIndex((row) => row?.name === previousName));
-    this.empty.textContent = this.rows.length ? '' : t('Папка пуста');
+    this.empty.textContent = this.rows.length ? '' : t('Folder is empty');
     const fragment = document.createDocumentFragment();
     this.rows.forEach((row, index) => {
       const line = make('div', undefined, 'file-row');
       line.id = workspace.id + '-' + this.side + '-' + index;
       line.setAttribute('role', 'option');
       const title = make('span', (row?.kind === 'directory' || !row ? '▸ ' : row.kind === 'link' ? '↗ ' : '') + (row?.name ?? '..'));
-      title.title = row?.name ?? t('На уровень выше');
+      title.title = row?.name ?? t('Up one level');
       const modified = row?.modified && Number.isFinite(row.modified) ? new Date(row.modified) : undefined;
       line.append(title, make('span', row?.kind === 'file' ? row.size.toLocaleString() : ''),
         make('span', modified && !Number.isNaN(modified.valueOf()) ? this.dateFormat.format(modified) : ''));
@@ -165,17 +165,17 @@ export class FileWorkspace {
     const columns = make('div', undefined, 'file-panels');
     columns.append(this.panels.local.element, this.panels.remote.element);
     const toolbar = make('div', undefined, 'file-actions');
-    this.retry = action(t('Подключить'), () => void this.connect());
-    this.password = action(t('Ввести пароль'), () => void this.enterPassword());
+    this.retry = action(t('Connect'), () => void this.connect());
+    this.password = action(t('Enter password'), () => void this.enterPassword());
     this.retry.hidden = this.password.hidden = true;
-    toolbar.append(action(t('F2 Переименовать'), () => void this.operation('rename')),
-      action(t('F5 Копировать'), () => void this.operation('copy')),
-      action(t('F7 Новая папка'), () => void this.operation('mkdir')),
-      action(t('F8 Удалить'), () => void this.operation('delete')),
-      action(t('Обновить'), () => void this.refresh()), this.retry, this.password);
+    toolbar.append(action(t('F2 Rename'), () => void this.operation('rename')),
+      action(t('F5 Copy'), () => void this.operation('copy')),
+      action(t('F7 New folder'), () => void this.operation('mkdir')),
+      action(t('F8 Delete'), () => void this.operation('delete')),
+      action(t('Refresh'), () => void this.refresh()), this.retry, this.password);
     this.contextMenu.hidden = true;
     this.contextMenu.setAttribute('role', 'menu');
-    this.contextMenu.setAttribute('aria-label', t('Действия с файлом на сервере'));
+    this.contextMenu.setAttribute('aria-label', t('Remote file actions'));
     this.contextMenu.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -232,11 +232,11 @@ export class FileWorkspace {
     this.dismissContext(false);
     this.activate('remote');
     const absolute = directory.replace(/\/$/, '') + '/' + entry.name;
-    const copy = action(t('Скопировать путь'), () => {
+    const copy = action(t('Copy path'), () => {
       this.clipboard(absolute);
       this.dismissContext();
     });
-    const permissions = action(t('Права…'), () => {
+    const permissions = action(t('Permissions…'), () => {
       this.dismissContext();
       void this.editPermissions(entry.name, absolute);
     });
@@ -262,7 +262,7 @@ export class FileWorkspace {
     this.setBusy(true);
     this.report('connecting');
     this.retry.hidden = this.password.hidden = true;
-    this.panels.remote.empty.textContent = t('Подключение…');
+    this.panels.remote.empty.textContent = t('Connecting…');
     try {
       const remote = this.api.open(this.id, this.profile, password);
       const local = this.api.list(this.id, 'local').then((listing) => {
@@ -389,7 +389,7 @@ export class FileWorkspace {
   }
 
   private async enterPassword() {
-    const value = await this.ask(t('Пароль для SFTP'), t('Пароль будет использован только для этого подключения.'), t('Подключить'), 'password');
+    const value = await this.ask(t('SFTP password'), t('The password will only be used for this connection.'), t('Connect'), 'password');
     if (value) await this.connect(value);
   }
 
@@ -416,22 +416,22 @@ export class FileWorkspace {
     const names = panel.names();
     let command: FileCommand;
     if (type === 'mkdir') {
-      const name = await this.ask(t('Новая папка'), panel.listing.path, t('Создать'), 'text');
+      const name = await this.ask(t('New folder'), panel.listing.path, t('Create'), 'text');
       if (!name) return;
       command = { type, side, name };
     } else {
       if (!names.length) return;
       if (type === 'rename') {
-        if (names.length !== 1) { this.error(t('Выберите один элемент.')); return; }
-        const newName = await this.ask(t('Переименовать'), names[0], t('Переименовать'), 'text', names[0]);
+        if (names.length !== 1) { this.error(t('Select one item.')); return; }
+        const newName = await this.ask(t('Rename'), names[0], t('Rename'), 'text', names[0]);
         if (!newName || newName === names[0]) return;
         command = { type, side, name: names[0], newName };
       } else {
-        const description = names.length === 1 ? '«' + names[0] + '»' : t('Элементов: {count}', { count: names.length });
-        if (type === 'copy' && !this.panels[opposite(side)].listing) { this.error(t('Сначала откройте целевую папку.')); return; }
+        const description = names.length === 1 ? '«' + names[0] + '»' : t('Items: {count}', { count: names.length });
+        if (type === 'copy' && !this.panels[opposite(side)].listing) { this.error(t('Open the destination folder first.')); return; }
         const target = type === 'copy' ? this.panels[opposite(side)].listing?.path : panel.listing.path;
-        const verb = type === 'copy' ? t('Копировать') : t('Удалить');
-        const detail = description + '\n' + target + (type === 'delete' ? t('\nВключая содержимое папок. Без корзины.') : '');
+        const verb = type === 'copy' ? t('Copy') : t('Delete');
+        const detail = description + '\n' + target + (type === 'delete' ? t('\nFolder contents will also be permanently deleted.') : '');
         if (await this.ask(verb + '?', detail, verb, undefined, undefined, type === 'delete') === null) return;
         command = { type, side, names };
       }
@@ -455,7 +455,7 @@ export class FileWorkspace {
     try { await task(); }
     catch (error) {
       if (!this.closed) {
-        if (errorMessage(error) === t('Соединение SFTP закрыто. Подключитесь снова.')) {
+        if (errorMessage(error) === t('The SFTP connection is closed. Connect again.')) {
           this.retry.hidden = false;
           this.report('failed', errorMessage(error));
         }
@@ -489,7 +489,7 @@ export class FileWorkspace {
       form.append(input);
     }
     const actions = make('div', undefined, 'dialog-actions');
-    const cancel = action(t('Отмена'), () => this.dialog.close('cancel'));
+    const cancel = action(t('Cancel'), () => this.dialog.close('cancel'));
     const confirm = make('button', label, danger ? 'danger' : 'primary');
     confirm.value = 'yes';
     actions.append(cancel, confirm);

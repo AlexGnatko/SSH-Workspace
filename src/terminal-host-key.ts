@@ -26,7 +26,7 @@ function readPresentedKey(host: string, port: number, type: string, signal: Abor
     client.once('close', () => {
       signal.removeEventListener('abort', abort);
       if (key) resolve(key);
-      else reject(new Error(t('Не удалось получить открытый ключ сервера.')));
+      else reject(new Error(t('Could not retrieve the server’s public key.')));
     });
     try {
       client.connect({
@@ -56,11 +56,11 @@ export async function replaceTerminalHostKey(
   const type = offered?.[1];
   if (!stored || !offered || !address || !isIP(address) || !type ||
       !/^(?:ssh-(?:ed25519|rsa)|ecdsa-sha2-nistp(?:256|384|521))$/.test(type)) {
-    throw new Error(t('Не удалось однозначно определить старый и новый ключи OpenSSH.'));
+    throw new Error(t('Could not reliably determine the old and new OpenSSH keys.'));
   }
   const config = await readSshConfig(profile, signal);
   if (config.proxy || config.configured('revokedhostkeys') || config.configured('knownhostscommand')) {
-    throw new Error(t('В этой конфигурации OpenSSH автоматическая замена ключа недоступна.'));
+    throw new Error(t('Automatic key replacement is unavailable for this OpenSSH configuration.'));
   }
   const host = config.get('hostname') ?? profile.host;
   const configuredPort = Number(config.get('port') ?? profile.port ?? 22);
@@ -71,13 +71,13 @@ export async function replaceTerminalHostKey(
   if (port !== configuredPort || !entry || entry.marker || known.certificateAuthority ||
       !config.userKnownHosts.some((file) => sameKnownFile(file, entry.file)) ||
       config.globalKnownHosts.some((file) => sameKnownFile(file, entry.file))) {
-    throw new Error(t('Ключ нельзя заменить в пользовательском known_hosts для этого сервера.'));
+    throw new Error(t('The key for this server cannot be replaced in your known_hosts file.'));
   }
   const key = await readPresentedKey(address, port, type, signal);
   const next = fingerprint(key);
   const previous = fingerprint(entry.key);
   if (keyType(key) !== type || next !== offered[2] || previous === next || known.revoked.has(key.toString('base64'))) {
-    throw new Error(t('Ключ при повторной проверке отличается или отозван. Подключитесь снова.'));
+    throw new Error(t('The key returned by the second check differs or has been revoked. Connect again.'));
   }
   const replace = planKnownReplacement(entry, lookup, key);
   if (!await confirm({ endpoint: lookup, previous, next }, signal)) return false;

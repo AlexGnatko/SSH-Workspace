@@ -20,18 +20,18 @@ function done(call: (callback: (error?: Error | null) => void) => void): Promise
 }
 
 function sideOf(side: FileSide): FileSide {
-  if (side !== 'local' && side !== 'remote') throw new Error(t('Неизвестная файловая панель.'));
+  if (side !== 'local' && side !== 'remote') throw new Error(t('Unknown file pane.'));
   return side;
 }
 
 function validName(name: string, side: FileSide) {
   if (typeof name !== 'string' || !name || name === '.' || name === '..' || /[\/\0]/.test(name)) {
-    throw new Error(t('Некорректное имя файла.'));
+    throw new Error(t('Invalid file name.'));
   }
   if (side === 'local' && process.platform === 'win32' &&
     (/[<>:"\\|?*\x00-\x1f]|[. ]$/u.test(name) ||
       /^(?:CON|CONIN\$|CONOUT\$|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])(?: *\.|$)/iu.test(name))) {
-    throw new Error(t('Имя несовместимо с Windows: {name}', { name }));
+    throw new Error(t('The name is incompatible with Windows: {name}', { name }));
   }
   return name;
 }
@@ -121,10 +121,10 @@ export class FilesSession {
 
   async list(side: FileSide, input?: string): Promise<FileListing> {
     sideOf(side);
-    if (this.busy) throw new Error(t('Дождитесь окончания файловой операции.'));
+    if (this.busy) throw new Error(t('Wait until the file operation finishes.'));
     this.stop.signal.throwIfAborted();
     if (input !== undefined && (typeof input !== 'string' || !input || input.length > 32768 || input.includes('\0'))) {
-      throw new Error(t('Некорректный путь.'));
+      throw new Error(t('Invalid path.'));
     }
     const fallback = side === 'local' ? homedir() : '.';
     const previous = this.folders[side];
@@ -146,7 +146,7 @@ export class FilesSession {
     this.stop.signal.throwIfAborted();
     const target = this.child('remote', this.folder('remote'), name);
     const info = await this.remoteStat(target);
-    if (!info.isDirectory() && !info.isFile()) throw new Error(t('Права доступны для файлов и папок.'));
+    if (!info.isDirectory() && !info.isFile()) throw new Error(t('Permissions are available for files and folders.'));
     return { mode: info.mode & 0o7777, uid: accountId(info.uid) ? info.uid : null,
       gid: accountId(info.gid) ? info.gid : null, directory: info.isDirectory() };
   }
@@ -155,7 +155,7 @@ export class FilesSession {
     this.stop.signal.throwIfAborted();
     const side = sideOf(command.side);
     const root = this.folder(side);
-    if (this.busy) throw new Error(t('Файловая операция уже выполняется.'));
+    if (this.busy) throw new Error(t('A file operation is already running.'));
     this.busy = true;
     try {
       if (command.type === 'mkdir') {
@@ -172,16 +172,16 @@ export class FilesSession {
         if (!changes || !Number.isInteger(changes.mode) || changes.mode < 0 || changes.mode > 0o7777 ||
           (changes.uid !== null && !accountId(changes.uid)) || (changes.gid !== null && !accountId(changes.gid)) ||
           typeof changes.recursive !== 'boolean') {
-          throw new Error(t('Некорректные права, UID или GID.'));
+          throw new Error(t('Invalid permissions, UID, or GID.'));
         }
         const target = this.child('remote', root, command.name);
         if (!(await this.permissions(command.name)).directory && changes.recursive) {
-          throw new Error(t('Рекурсивное изменение доступно только для папок.'));
+          throw new Error(t('Recursive changes are available for folders only.'));
         }
         await this.applyPermissions(target, changes);
       } else if (command.type === 'copy' || command.type === 'delete') {
         if (!Array.isArray(command.names) || !command.names.length || command.names.length > 10000) {
-          throw new Error(t('Выберите файлы или папки.'));
+          throw new Error(t('Select files or folders.'));
         }
         const names = [...new Set(command.names)];
         const sources = names.map((name) => this.child(side, root, name));
@@ -194,7 +194,7 @@ export class FilesSession {
           await this.copyBatch(side, sources, opposite, targets, progress);
         }
       } else {
-        throw new Error(t('Неизвестная файловая операция.'));
+        throw new Error(t('Unknown file operation.'));
       }
     } finally {
       this.busy = false;
@@ -203,12 +203,12 @@ export class FilesSession {
 
   private folder(side: FileSide) {
     const folder = this.folders[side];
-    if (!folder) throw new Error(t('Сначала откройте папку.'));
+    if (!folder) throw new Error(t('Open a folder first.'));
     return folder;
   }
 
   private remote() {
-    if (!this.sftp) throw new Error(t('Соединение SFTP закрыто. Подключитесь снова.'));
+    if (!this.sftp) throw new Error(t('The SFTP connection is closed. Connect again.'));
     return this.sftp;
   }
 
@@ -267,7 +267,7 @@ export class FilesSession {
       if (code === 'ENOENT' || (side === 'remote' && code === 2)) return;
       throw error;
     }
-    throw new Error(t('В целевой папке уже есть «{name}».', { name: (side === 'local' ? path : path.posix).basename(target) }));
+    throw new Error(t('“{name}” already exists in the destination folder.', { name: (side === 'local' ? path : path.posix).basename(target) }));
   }
 
   private mkdir(side: FileSide, target: string) {
@@ -310,7 +310,7 @@ export class FilesSession {
       (changes.gid !== null && changes.gid !== info.gid);
     try {
       if (changeOwner) {
-        if (!accountId(uid) || !accountId(gid)) throw new Error(t('Сервер не сообщил текущие UID или GID. Укажите оба.'));
+        if (!accountId(uid) || !accountId(gid)) throw new Error(t('The server did not provide the current UID or GID. Specify both.'));
         await done((callback) => this.remote().chown(target, uid, gid, callback));
       }
       if (changeOwner || (info.mode & 0o7777) !== changes.mode) {
@@ -331,7 +331,7 @@ export class FilesSession {
       }
       return;
     }
-    if (!info.isFile() || info.isSymbolicLink()) throw new Error(t('Копирование ссылок и специальных файлов не поддерживается.'));
+    if (!info.isFile() || info.isSymbolicLink()) throw new Error(t('Copying links and special files is not supported.'));
     plan.push({ source, target, size: info.size ?? 0 });
   }
 
@@ -371,7 +371,7 @@ export class FilesSession {
       name = (from === 'local' ? path : path.posix).basename(item.source);
       const info = await this.stat(from, item.source);
       if (info.isSymbolicLink() || (item.size === null ? !info.isDirectory() : !info.isFile())) {
-        throw new Error(t('Тип элемента изменился во время копирования: {name}', { name }));
+        throw new Error(t('The item type changed during copying: {name}', { name }));
       }
       if (item.size === null) {
         await this.mkdir(to, item.target);

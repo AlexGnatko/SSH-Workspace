@@ -12,9 +12,9 @@ export async function connectSftp(
   confirmChange: ConfirmKeyChange, inputPassword?: string,
 ): Promise<SFTPWrapper> {
   const { get, values, configured, proxy, globalKnownHosts, userKnownHosts } = await readSshConfig(profile, signal);
-  if (proxy) throw new Error(t('SFTP через ProxyJump или ProxyCommand пока недоступен.'));
+  if (proxy) throw new Error(t('SFTP via ProxyJump or ProxyCommand is not yet supported.'));
   if (configured('revokedhostkeys') || configured('knownhostscommand')) {
-    throw new Error(t('SFTP с заданным RevokedHostKeys или KnownHostsCommand пока недоступен.'));
+    throw new Error(t('SFTP with RevokedHostKeys or KnownHostsCommand configured is not yet supported.'));
   }
   const host = get('hostname') ?? profile.host;
   const port = Number(get('port') ?? profile.port ?? 22);
@@ -64,11 +64,11 @@ export async function connectSftp(
   const verifyKey = async (key: Buffer) => {
     const known = await readKnownHosts(lookup, files, verification);
     const encoded = key.toString('base64');
-    if (known.revoked.has(encoded)) throw new Error(t('Ключ сервера отозван в known_hosts.'));
+    if (known.revoked.has(encoded)) throw new Error(t('The host key is revoked in known_hosts.'));
     const pinned = profiles.sftpKey(profile, endpoint);
     const next = fingerprint(key);
     if (known.keys.has(encoded) || (!known.keys.size && pinned === encoded)) return true;
-    if (known.certificateAuthority) throw new Error(t('Этот адрес использует центр сертификации SSH. Проверка сертификатов в SFTP пока недоступна.'));
+    if (known.certificateAuthority) throw new Error(t('This host uses an SSH certificate authority. SFTP certificate verification is not yet supported.'));
     if (known.keys.size) {
       const regular = known.records.filter((entry) => !entry.marker);
       const matchingType = regular.filter((entry) => entry.type === keyType(key));
@@ -76,11 +76,11 @@ export async function connectSftp(
       const entry = candidates[0];
       if (candidates.length !== 1 || !userKnownHosts.some((file) => sameKnownFile(file, entry.file)) ||
           globalKnownHosts.some((file) => sameKnownFile(file, entry.file))) {
-        throw new Error(t('Ключ сервера изменился. Запись known_hosts нельзя однозначно заменить.'));
+        throw new Error(t('The host key changed. No unique known_hosts entry could be selected for replacement.'));
       }
       const replace = planKnownReplacement(entry, lookup, key);
       if (!await confirmChange({ endpoint: lookup, previous: fingerprint(entry.key), next }, verification)) {
-        throw new Error(t('Новый ключ сервера не подтверждён.'));
+        throw new Error(t('The new host key was not confirmed.'));
       }
       verification.throwIfAborted();
       replace();
@@ -89,14 +89,14 @@ export async function connectSftp(
     }
     if (pinned) {
       if (!await confirmChange({ endpoint: lookup, previous: fingerprint(pinned), next }, verification)) {
-        throw new Error(t('Новый ключ сервера не подтверждён.'));
+        throw new Error(t('The new host key was not confirmed.'));
       }
       verification.throwIfAborted();
       profiles.replaceSftpKey(profile, endpoint, pinned, encoded);
       return true;
     }
-    if (get('stricthostkeychecking') === 'yes') throw new Error(t('Сначала добавьте ключ сервера в known_hosts.'));
-    if (!await confirm(lookup, next, verification)) throw new Error(t('Ключ сервера не подтверждён.'));
+    if (get('stricthostkeychecking') === 'yes') throw new Error(t('Add the host key to known_hosts first.'));
+    if (!await confirm(lookup, next, verification)) throw new Error(t('The host key was not confirmed.'));
     verification.throwIfAborted();
     profiles.trustSftpKey(profile, endpoint, encoded);
     return true;
@@ -106,7 +106,7 @@ export async function connectSftp(
     client.on('error', (error) => reject(trustError ?? error));
     client.once('close', () => {
       disconnected.abort();
-      reject(trustError ?? new Error(t('Соединение SFTP закрыто.')));
+      reject(trustError ?? new Error(t('The SFTP connection closed.')));
     });
     client.once('ready', () => client.sftp((error, sftp) => error ? reject(error) : resolve(sftp)));
     client.connect({
