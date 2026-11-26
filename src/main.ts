@@ -102,7 +102,7 @@ function registerIpc() {
     ? { backend: buildNumber >= 18309 ? 'conpty' : 'winpty', buildNumber }
     : undefined;
   handle('profiles:load', () => ({ ...profiles.load(), windowsPty, version: app.getVersion() }));
-  handle('app:open-site', () => shell.openExternal('https://ssh-workspace.ag38.ru/'));
+  handle('app:open-site', () => shell.openExternal('https://ssh-workspace.ag38.xyz/'));
   handle('app:show-licenses', async () => {
     const error = await shell.openPath(join(__dirname, 'licenses'));
     if (error) throw new Error(error);

@@ -202,3 +202,9 @@ export const messages = {
   "Применить": ["Apply", "Anwenden", "Appliquer", "Aplicar"],
   "Допустимое значение от 0 до 4294967294.": ["Enter a value between 0 and 4294967294.", "Geben Sie einen Wert von 0 bis 4294967294 ein.", "Saisissez une valeur comprise entre 0 et 4294967294.", "Introduce un valor entre 0 y 4294967294."],
 } satisfies Record<string, readonly [string, string, string, string]>;
+
+export const englishMessages = {
+  'Terminal actions': { en: 'Terminal actions', ru: 'Действия с терминалом', de: 'Terminalaktionen', fr: 'Actions du terminal', es: 'Acciones del terminal' },
+  'Move to the other pane': { en: 'Move to the other pane', ru: 'Перенести в другую панель', de: 'In den anderen Bereich verschieben', fr: 'Déplacer vers l’autre panneau', es: 'Mover al otro panel' },
+  Close: { en: messages['Закрыть'][0], ru: 'Закрыть', de: messages['Закрыть'][1], fr: messages['Закрыть'][2], es: messages['Закрыть'][3] },
+};

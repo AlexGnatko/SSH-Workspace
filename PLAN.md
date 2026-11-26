@@ -35,7 +35,7 @@ Give each open profile a tab in the top bar. A profile can contain several indep
 - Put servers, groups, and an **Open all** action in the sidebar. Use the center for terminal tabs and split panes. Provide **Computer** and **Server** file panels with SFTP uploads, downloads, and drag-and-drop. Server requirements will determine whether a separate SCP mode is useful.
 - Store profiles locally. Use the SSH agent for keys and `known_hosts` for host key verification. Publish the source and support local builds. Keep telemetry and cloud sync out of the app. Handle process and file operations in the Electron main process and expose a narrow API to the renderer.
 - Test input, clipboard operations, terminal resizing, and reconnection on early Linux and macOS builds. Electron provides the same interface engine across all three operating systems. Consider Tauri and system WebViews if download size becomes a higher priority.
-- Publish public English and Russian pages at `ssh-workspace.ag38.ru` that describe local storage, terminals, and SFTP. Link to releases, source code, and the license. List tested operating system versions and architectures next to the downloads. Add a sitemap and check indexing after launch.
+- Publish public English and Russian pages at `ssh-workspace.ag38.xyz` that describe local storage, terminals, and SFTP. Link to releases, source code, and the license. List tested operating system versions and architectures next to the downloads. Add a sitemap and check indexing after launch.
 - If measurements show that xterm.js limits performance, compare it with `libghostty-vt`. It is a cross-platform terminal emulation core that would require integration for rendering, selection, and clipboard operations.
 
 ## References

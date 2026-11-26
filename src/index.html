@@ -35,6 +35,12 @@
     <output id="notice" class="notice" role="alert" hidden></output>
   </main>
 
+  <div id="terminal-context-menu" class="context-menu" role="menu" hidden>
+    <button id="move-terminal" type="button" role="menuitem" tabindex="-1">Move to the other pane</button>
+    <hr role="separator">
+    <button id="close-terminal" type="button" role="menuitem" tabindex="-1">Close</button>
+  </div>
+
   <template id="workspace-pane-template">
     <section class="workspace-pane" tabindex="-1">
     <header class="pane-header">
@@ -129,7 +135,7 @@
       <p><span data-i18n>Авторы: Alex Gnatko и Codex (OpenAI).</span></p>
       <p>© 2026 Alex Gnatko</p>
       <p><span data-i18n>Скачать приложение можно на сайте проекта.</span></p>
-      <a id="project-site" href="https://ssh-workspace.ag38.ru/">ssh-workspace.ag38.ru</a>
+      <a id="project-site" href="https://ssh-workspace.ag38.xyz/">ssh-workspace.ag38.xyz</a>
       <p><span data-i18n>Код проекта доступен по лицензии MIT. Для сторонних компонентов действуют их собственные лицензии.</span></p>
       <button id="show-licenses" type="button"><span data-i18n>Тексты лицензий</span></button>
       <div class="dialog-actions"><button autofocus><span data-i18n>Закрыть</span></button></div>

@@ -33,7 +33,7 @@ After `npm ci`, build on the target operating system and architecture. Packages 
 
 Building `node-pty` on Linux requires Python 3, make, and a C++ compiler. Make the AppImage executable with `chmod +x <file>.AppImage`. The system OpenSSH client must be on `PATH` on Linux and macOS.
 
-On GitHub, open **Actions → Build desktop packages → Run workflow**. Once the workflow is on the default branch, you can run it to produce the MSI, AppImage, and both DMGs. Download them from **Artifacts** on the run page.
+Build the Windows MSI and Linux AppImage locally using the commands above. To build both macOS packages on GitHub, open **Actions → Build macOS packages → Run workflow** once the workflow is on the default branch. Download the Intel and Apple Silicon DMGs from **Artifacts** on the run page.
 
 The workflow is configured for builds without an Apple Developer ID certificate or notarization. Developer ID signing and notarization allow downloaded apps to open through Gatekeeper without a manual exception. Native Apple Silicon code requires a valid signature, and an ad hoc signature is sufficient for a test build. Verify the signature and first launch of the downloaded DMG on a Mac. [Apple's guide to opening apps](https://support.apple.com/en-us/102445)
 
@@ -48,6 +48,7 @@ The SSH Workspace source code is available under the [MIT license](LICENSE). Bun
 - A profile accepts a hostname, IP address, or alias from `~/.ssh/config`. OpenSSH supplies the username and port when those fields are blank. Profiles are stored in the app's local user data.
 - Use **Group** to create a profile group and assign profiles in their settings. The sidebar shows one expanded group at a time, and the top tab bar shows open profiles under their group names. Collapsing a group leaves its sessions connected.
 - The button at the top right splits the workspace into two panes, each with its own profile and session tabs. Select a pane, then choose a profile from the shared sidebar. Closing a pane ends its sessions and expands the other pane.
+- When two or more SSH terminals are open, use a terminal tab's **⋯** button or right-click the tab to open its menu. **Move to the other pane** moves the live session and its terminal history. The right pane opens automatically if needed. An empty pane closes after a move. SFTP tabs stay open in their original pane.
 - Passwords are optional. The app encrypts saved passwords using Electron's `safeStorage`. **Enter password** appears when OpenSSH asks for the account password. Respond to host key confirmations, key passphrase requests, and interactive login prompts in the terminal.
 - Host, username, and port changes apply to new terminals. Changing any of those fields clears the saved password unless you enter a replacement.
 - A clean exit from the remote shell closes the tab. After a network failure, the terminal stays open and retries with a delay of 2 to 30 seconds. If the server requires a password, use **Enter password** again or type it manually.

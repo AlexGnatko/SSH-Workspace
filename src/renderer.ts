@@ -84,6 +84,10 @@ const sidebar = element('profiles');
 const paneContainer = element('workspace-panes');
 const paneTemplate = element<HTMLTemplateElement>('workspace-pane-template');
 const notice = element('notice');
+const terminalMenu = element('terminal-context-menu');
+const moveTerminalAction = element<HTMLButtonElement>('move-terminal');
+const closeTerminalAction = element<HTMLButtonElement>('close-terminal');
+let menuTerminal: TerminalTab | undefined;
 let noticeTimer: ReturnType<typeof setTimeout>;
 
 let profiles: Profile[] = [];
@@ -220,11 +224,15 @@ function closePane(pane: WorkspacePane) {
   for (const profile of pane.openProfiles.values()) {
     for (const tab of profile.tabs) disposeTab(tab);
   }
+  removePane(pane);
+  activatePane(remaining);
+  showWorkspace();
+}
+
+function removePane(pane: WorkspacePane) {
   pane.observer.disconnect();
   pane.root.remove();
   panes.splice(panes.indexOf(pane), 1);
-  activatePane(remaining);
-  showWorkspace();
 }
 
 function restoreTerminalFocus() {
@@ -368,14 +376,94 @@ function renderNavigation() {
 function renderPaneNavigation(pane: WorkspacePane) {
   renderProfileTabs(pane);
   const group = selectedProfile(pane);
-  pane.terminalTabs.replaceChildren(...(group?.tabs ?? []).map((tab) =>
-    navigationTab(tab.kind === 'terminal' ? t('Терминал {number}', { number: tab.number }) : 'SFTP ' + tab.number, group?.active === tab.id, () => {
-      if (!group) return;
+  if (!group) {
+    pane.terminalTabs.replaceChildren();
+    return;
+  }
+  const canMove = [...tabs.values()].filter((tab) => tab.kind === 'terminal').length > 1;
+  pane.terminalTabs.replaceChildren(...group.tabs.map((tab) => {
+    const item = navigationTab(tab.kind === 'terminal' ? t('Терминал {number}', { number: tab.number }) : 'SFTP ' + tab.number, group.active === tab.id, () => {
       activatePane(pane);
       group.active = tab.id;
       showWorkspace();
-    }, () => { if (group) closeTab(group, tab); }, tab.status)));
+    }, () => closeTab(group, tab), tab.status);
+    if (tab.kind === 'terminal' && canMove) addTerminalMenu(item, tab);
+    return item;
+  }));
 }
+
+function addTerminalMenu(item: HTMLElement, tab: TerminalTab) {
+  const trigger = button('⋯', () => {
+    if (menuTerminal === tab) dismissTerminalMenu(true);
+    else openTerminalMenu(tab, trigger);
+  }, 'tab-menu');
+  trigger.title = t('Terminal actions');
+  trigger.setAttribute('aria-label', trigger.title);
+  trigger.setAttribute('aria-haspopup', 'menu');
+  trigger.setAttribute('aria-controls', terminalMenu.id);
+  trigger.setAttribute('aria-expanded', String(menuTerminal === tab));
+  trigger.dataset.terminalId = tab.id;
+  item.insertBefore(trigger, item.lastElementChild);
+  item.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    openTerminalMenu(tab, trigger, event.clientX || event.clientY ? event : undefined);
+  });
+}
+
+function terminalMenuTrigger(tab: TerminalTab) {
+  return tab.owner.terminalTabs.querySelector<HTMLButtonElement>('[data-terminal-id="' + tab.id + '"]');
+}
+
+function openTerminalMenu(tab: TerminalTab, trigger: HTMLButtonElement, point?: MouseEvent) {
+  dismissTerminalMenu();
+  menuTerminal = tab;
+  trigger.setAttribute('aria-expanded', 'true');
+  terminalMenu.setAttribute('aria-label', t('Terminal actions'));
+  moveTerminalAction.textContent = t('Move to the other pane');
+  closeTerminalAction.textContent = t('Close');
+  terminalMenu.hidden = false;
+  const anchor = trigger.getBoundingClientRect();
+  const x = point?.clientX ?? anchor.right - terminalMenu.offsetWidth;
+  const y = point?.clientY ?? anchor.bottom;
+  terminalMenu.style.left = Math.max(0, Math.min(x, innerWidth - terminalMenu.offsetWidth)) + 'px';
+  terminalMenu.style.top = Math.max(0, Math.min(y, innerHeight - terminalMenu.offsetHeight)) + 'px';
+  moveTerminalAction.focus();
+}
+
+function dismissTerminalMenu(restoreFocus = false) {
+  if (!menuTerminal) return;
+  const trigger = terminalMenuTrigger(menuTerminal);
+  menuTerminal = undefined;
+  terminalMenu.hidden = true;
+  trigger?.setAttribute('aria-expanded', 'false');
+  if (restoreFocus) trigger?.focus();
+}
+
+moveTerminalAction.addEventListener('click', () => {
+  if (menuTerminal) moveTerminal(menuTerminal);
+});
+closeTerminalAction.addEventListener('click', () => {
+  if (!menuTerminal) return;
+  const group = menuTerminal.owner.openProfiles.get(menuTerminal.profileId);
+  if (group) closeTab(group, menuTerminal);
+});
+document.addEventListener('pointerdown', (event) => {
+  if (menuTerminal && event.target instanceof Element &&
+      !event.target.closest('#terminal-context-menu, .tab-menu')) dismissTerminalMenu();
+});
+terminalMenu.addEventListener('focusout', (event) => {
+  if (menuTerminal && event.relatedTarget instanceof Node && !terminalMenu.contains(event.relatedTarget) &&
+      event.relatedTarget !== terminalMenuTrigger(menuTerminal)) dismissTerminalMenu();
+});
+terminalMenu.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') dismissTerminalMenu(true);
+  else if (event.key === 'Home') moveTerminalAction.focus();
+  else if (event.key === 'End') closeTerminalAction.focus();
+  else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    (document.activeElement === moveTerminalAction ? closeTerminalAction : moveTerminalAction).focus();
+  } else return;
+  event.preventDefault();
+});
 
 function updateStatus(pane: WorkspacePane) {
   const tab = selectedTab(pane);
@@ -399,6 +487,7 @@ function updateStatus(pane: WorkspacePane) {
 }
 
 function showWorkspace(focus = true) {
+  dismissTerminalMenu();
   const split = panes.length === 2;
   paneContainer.classList.toggle('is-split', split);
   for (const [index, pane] of panes.entries()) {
@@ -457,11 +546,15 @@ function closeProfile(pane: WorkspacePane, id: string) {
   const group = pane.openProfiles.get(id);
   if (!group) return;
   for (const tab of group.tabs) disposeTab(tab);
+  const wasActive = pane.activeProfile === id;
+  removeOpenProfile(pane, id);
+  showWorkspace(wasActive && pane === activePane);
+}
+
+function removeOpenProfile(pane: WorkspacePane, id: string) {
   const ids = [...pane.openProfiles.keys()];
   pane.openProfiles.delete(id);
-  const wasActive = pane.activeProfile === id;
-  if (wasActive) pane.activeProfile = ids[ids.indexOf(id) + 1] ?? ids[ids.indexOf(id) - 1] ?? null;
-  showWorkspace(wasActive && pane === activePane);
+  if (pane.activeProfile === id) pane.activeProfile = ids[ids.indexOf(id) + 1] ?? ids[ids.indexOf(id) - 1] ?? null;
 }
 
 function disposeTab(tab: SessionTab) {
@@ -474,17 +567,38 @@ function disposeTab(tab: SessionTab) {
   }
 }
 
-function closeTab(group: ProfileTab, tab: SessionTab) {
-  if (group.tabs.length === 1) {
-    closeProfile(tab.owner, group.id);
-    return;
-  }
-  const wasSelected = selectedTab() === tab;
+function detachTab(group: ProfileTab, tab: SessionTab) {
   const index = group.tabs.indexOf(tab);
   group.tabs.splice(index, 1);
-  if (group.active === tab.id) group.active = (group.tabs[index] ?? group.tabs[index - 1]).id;
+  if (!group.tabs.length) removeOpenProfile(tab.owner, group.id);
+  else if (group.active === tab.id) group.active = (group.tabs[index] ?? group.tabs[index - 1]).id;
+}
+
+function closeTab(group: ProfileTab, tab: SessionTab) {
+  const wasSelected = selectedTab() === tab;
+  detachTab(group, tab);
   disposeTab(tab);
   showWorkspace(wasSelected);
+}
+
+function moveTerminal(tab: TerminalTab) {
+  const source = tab.owner;
+  const from = source.openProfiles.get(tab.profileId);
+  if (!from) return;
+  dismissTerminalMenu();
+  const destination = panes.find((pane) => pane !== source) ?? createPane();
+  const to = destination.openProfiles.get(tab.profileId) ??
+    { id: tab.profileId, tabs: [], active: null, nextNumber: 1, nextFileNumber: 1 };
+  detachTab(from, tab);
+  if (to.tabs.some((item) => item.kind === 'terminal' && item.number === tab.number)) tab.number = to.nextNumber;
+  to.nextNumber = Math.max(to.nextNumber, tab.number + 1);
+  to.tabs.push(tab);
+  to.active = tab.id;
+  destination.openProfiles.set(to.id, to);
+  tab.owner = destination;
+  destination.terminalArea.append(tab.pane);
+  if (!source.openProfiles.size) removePane(source);
+  activateProfile(destination, to.id);
 }
 
 function addFiles(pane: WorkspacePane, group: ProfileTab) {
@@ -552,8 +666,8 @@ function addTerminal(owner: WorkspacePane, group: ProfileTab) {
     if (!tabs.has(tab.id)) return;
     tab.status = 'failed';
     tab.detail = errorText(error);
-    renderPaneNavigation(owner);
-    updateStatus(owner);
+    renderPaneNavigation(tab.owner);
+    updateStatus(tab.owner);
   });
 }
 

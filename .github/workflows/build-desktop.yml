@@ -1,4 +1,4 @@
-name: Build desktop packages
+name: Build macOS packages
 
 on:
   workflow_dispatch:
@@ -12,22 +12,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: windows-2025
-            target: msi
-            artifact: windows-x64
-            pattern: '*.msi'
-          - runner: ubuntu-24.04
-            target: linux
-            artifact: linux-x64
-            pattern: '*.AppImage'
           - runner: macos-15-intel
-            target: mac
             artifact: macos-x64
-            pattern: '*.dmg'
           - runner: macos-15
-            target: mac
             artifact: macos-arm64
-            pattern: '*.dmg'
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
@@ -38,9 +26,9 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run package:${{ matrix.target }}
+      - run: npm run package:mac
       - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
-          path: release/*/${{ matrix.pattern }}
+          path: release/*/*.dmg
           if-no-files-found: error

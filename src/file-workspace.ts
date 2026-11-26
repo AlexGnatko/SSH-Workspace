@@ -146,7 +146,7 @@ export class FileWorkspace {
   private readonly dialog = make('dialog');
   private readonly copyWindow = new CopyWindow();
   private readonly permissionsWindow = new PermissionsWindow();
-  private readonly contextMenu = make('div', undefined, 'file-context-menu');
+  private readonly contextMenu = make('div', undefined, 'context-menu file-context-menu');
   private contextEvents?: AbortController;
   private readonly retry: HTMLButtonElement;
   private readonly password: HTMLButtonElement;

@@ -1,10 +1,10 @@
 {
   "name": "ssh-workspace",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "description": "Desktop SSH and SFTP client with local connection profiles",
   "author": "Alex Gnatko",
-  "homepage": "https://ssh-workspace.ag38.ru/",
+  "homepage": "https://ssh-workspace.ag38.xyz/",
   "desktopName": "org.sshworkspace.desktop",
   "license": "MIT",
   "main": "dist/main.js",
