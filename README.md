@@ -1,10 +1,29 @@
+<img src="assets/icon.png" width="72" height="72" align="right" alt="">
+
 # SSH Workspace
 
-SSH Workspace is a desktop SSH and SFTP client. Save a connection profile in the sidebar, select it to connect, and use the **+** button next to its session tabs to open additional terminals.
+**A modern alternative to PuTTY + WinSCP.**
 
-## Run on Windows
+Open SSH terminals and transfer files over SFTP in the same desktop app. Work with two terminals side by side, move live sessions between panes without reconnecting, and manage local and remote files in a two-panel file browser.
 
-Open `SSH Workspace.exe` in `release/<version>/win-unpacked`. The Windows x64 build includes Electron, Chromium, Node.js, and the application code. Copy the entire `win-unpacked` folder to move the portable build. Install the Windows OpenSSH Client optional feature to use SSH terminals and read OpenSSH configuration.
+**Free, MIT-licensed, and open source. No account or subscription required.** Your connection profiles stay on your device.
+
+**[Download for Windows, macOS, or Linux](https://github.com/AlexGnatko/SSH-Workspace/releases)** · [Build from source](#build-from-source) · [MIT license](LICENSE)
+
+## Screenshots
+
+[![Two SSH terminals from different profile groups running top side by side](screen2.jpg)](screen2.jpg)
+
+| Two-panel SFTP | Midnight Commander over SSH |
+| --- | --- |
+| [![SFTP browser with local files on the left and server files on the right](screen3.jpg)](screen3.jpg) | [![Midnight Commander running inside an SSH terminal](screen1.jpg)](screen1.jpg) |
+
+## Install on Windows
+
+1. Download the Windows x64 `.msi` from the **Assets** section of a [GitHub release](https://github.com/AlexGnatko/SSH-Workspace/releases).
+2. Run the installer, then open **SSH Workspace** from the Start menu.
+
+The installer bundles the app and its runtime. SSH Workspace uses the Windows **OpenSSH Client** optional feature to run SSH terminals and read OpenSSH configuration. Enable it in Windows if it is missing.
 
 ## Build from source
 
@@ -19,7 +38,7 @@ Electron downloads its binary on first use. An older version of Node.js may repo
 
 Run the Windows build commands from Windows. If you run the project in WSL, use a separate checkout such as `~/SSH-Workspace`. Windows and Linux use different native dependencies in `node_modules`. If installing from WSL replaces the Windows dependencies in a shared folder, run `npm ci` from Windows to restore them.
 
-Run `npm run package:win` on Windows to build the portable folder. Run `npm run build` to compile the app without packaging it.
+Run `npm run package:win` on Windows to build a portable copy in `release/<version>/win-unpacked`. Open `SSH Workspace.exe` there and keep the entire folder together when moving the build. Run `npm run build` to compile the app without packaging it.
 
 ## Distribution packages
 
@@ -44,6 +63,8 @@ Open the app menu with the menu button or by clicking the SSH Workspace logo. Se
 The SSH Workspace source code is available under the [MIT license](LICENSE). Bundled third-party license texts are available from **About**.
 
 ## Connections
+
+Save a connection profile in the sidebar and select it to connect. Use the **+** button next to the session tabs to open additional terminals.
 
 - A profile accepts a hostname, IP address, or alias from `~/.ssh/config`. OpenSSH supplies the username and port when those fields are blank. Profiles are stored in the app's local user data.
 - Use **Group** to create a profile group and assign profiles in their settings. The sidebar shows one expanded group at a time, and the top tab bar shows open profiles under their group names. Collapsing a group leaves its sessions connected.
